@@ -12,7 +12,8 @@ test.describe('joining a session', () => {
     await expect(gina.page.getByTestId('session-title')).toHaveText('Sprint 42 retro');
 
     await gina.context.close();
-    await expect(page.getByTestId('presence')).toHaveText('1');
+    // locally this is instant; across a real network (Render's proxy) an abruptly killed window takes about 10 s to be noticed
+    await expect(page.getByTestId('presence')).toHaveText('1', { timeout: 30_000 });
   });
 
   test('the home page checks the code as you type and shows which session it is', async ({ page, browser }) => {

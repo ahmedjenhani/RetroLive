@@ -4,7 +4,7 @@ A live team retrospective board. A host opens a session and shares a short code.
 (no account needed), adds notes, and votes. Notes, votes, the timer and the session phase update **in real time** for
 everyone, and one click turns the notes into themes and action items with AI.
 
-> **Live demo:** _add the Vercel URL here after deploying_ &nbsp;|&nbsp; **API health:** _add the Render URL_`/health`
+> **Live demo:** <https://retrolive.vercel.app> &nbsp;|&nbsp; **API health:** <https://retrolive-api.onrender.com/health>
 >
 > **No sign-up needed:** click **Try a demo retro** on the home page for a ready-made board. Then click the code to copy the
 > invite link and open it in a second window to watch the board stay in sync. (Free hosting: the very first request after a quiet period can take up to a minute
@@ -188,7 +188,7 @@ The live protocol (client to server and back) is documented in code, in `shared/
    URL) and `GEMINI_API_KEY`. `JWT_SECRET` is generated for you. Render supports WebSockets on the free plan.
 3. **Web app, Vercel.** Import the repository (the root directory stays the repo root, `vercel.json` does the rest) and set
    the environment variable `API_URL=https://<your-render-service>.onrender.com`.
-4. Put the live links at the top of this README.
+4. Put the live links at the top of this README. (Done for the instance linked above.)
 
 Free hosting notes: the API sleeps after a quiet period, so the first request can take up to a minute, and a sleeping server
 drops its connections. The web app reconnects by itself and restores the full state. This version runs as a **single API
