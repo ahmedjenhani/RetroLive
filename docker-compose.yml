@@ -1,0 +1,57 @@
+# Runs the whole app (database, API and web app) with one command:
+#   docker compose up --build
+# then open http://localhost:8080
+#
+# Settings come from the .env file in this folder (copy .env.example to .env first).
+name: retrolive
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: retrolive
+      POSTGRES_USER: retrolive
+      POSTGRES_PASSWORD: ${COMPOSE_DB_PASSWORD:-retrolive}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U retrolive -d retrolive"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://retrolive:${COMPOSE_DB_PASSWORD:-retrolive}@db:5432/retrolive
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in the .env file (copy .env.example)}
+      CORS_ORIGIN: http://localhost:${WEB_PORT:-8080}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.5-flash-lite}
+      GEMINI_FALLBACK_MODEL: ${GEMINI_FALLBACK_MODEL:-gemini-3.1-flash-lite}
+      # leave on; the end-to-end tests turn it off (RATE_LIMITS_ENABLED=false docker compose up)
+      RATE_LIMITS_ENABLED: ${RATE_LIMITS_ENABLED:-true}
+    # The same memory budget as a free Render instance, so problems show up here first.
+    mem_limit: 512m
+    ports:
+      - "127.0.0.1:${API_PORT:-4000}:4000"
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    depends_on:
+      - backend
+    ports:
+      - "${WEB_PORT:-8080}:80"
+    restart: unless-stopped
+
+volumes:
+  db-data:

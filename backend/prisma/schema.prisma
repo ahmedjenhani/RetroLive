@@ -1,0 +1,102 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Phase {
+  WRITING
+  VOTING
+  DISCUSSING
+  CLOSED
+}
+
+enum NoteColumn {
+  WENT_WELL
+  TO_IMPROVE
+  ACTION_IDEAS
+}
+
+/// A host account. Guests never have one.
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  createdAt    DateTime @default(now())
+
+  sessions     RetroSession[]
+  participants Participant[]
+}
+
+model RetroSession {
+  id          String    @id @default(cuid())
+  hostId      String
+  host        User      @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  title       String
+  /// Short code people type to join, unique across sessions.
+  code        String    @unique
+  phase       Phase     @default(WRITING)
+  /// When the running countdown ends; null if no timer is running.
+  timerEndsAt DateTime?
+  /// The AI summary (themes and action items), once generated.
+  summary     Json?
+  createdAt   DateTime  @default(now())
+
+  participants Participant[]
+  notes        Note[]
+
+  @@index([hostId, createdAt])
+}
+
+/// One person in one session: the host (linked to a user) or a guest (nickname only).
+model Participant {
+  id          String       @id @default(cuid())
+  sessionId   String
+  session     RetroSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  userId      String?
+  user        User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  nickname    String
+  /// Lower-cased nickname, so "Sam" and "sam" cannot both join the same session.
+  nicknameKey String
+  isHost      Boolean      @default(false)
+  createdAt   DateTime     @default(now())
+
+  notes Note[]
+  votes Vote[]
+
+  @@unique([sessionId, nicknameKey])
+  @@index([sessionId])
+}
+
+model Note {
+  id            String       @id @default(cuid())
+  sessionId     String
+  session       RetroSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  participantId String
+  participant   Participant  @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  column        NoteColumn
+  text          String       @db.VarChar(280)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  votes Vote[]
+
+  @@index([sessionId, createdAt])
+}
+
+model Vote {
+  id            String      @id @default(cuid())
+  noteId        String
+  note          Note        @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  participantId String
+  participant   Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  createdAt     DateTime    @default(now())
+
+  /// A participant can vote for a note only once.
+  @@unique([noteId, participantId])
+  @@index([participantId])
+}

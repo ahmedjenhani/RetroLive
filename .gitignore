@@ -1,0 +1,26 @@
+# Secrets - never commit
+.env
+.env.*
+!.env.example
+
+# Dependencies and build output
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Logs written by the local launcher and tools
+*.log
+run.log
+run2.log
+
+# End-to-end test output (the README screenshots live in docs/screenshots instead)
+e2e/test-results/
+e2e/screenshots/
+e2e/playwright-report/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json

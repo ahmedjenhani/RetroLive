@@ -1,0 +1,29 @@
+# Render Blueprint for the API. The database lives on Neon and the web app on Vercel (see README, "Deploy").
+services:
+  - type: web
+    name: retrolive-api
+    runtime: docker
+    plan: free
+    region: frankfurt
+    # The Dockerfile lives in backend/ but needs the shared package, so the build context is the repo root.
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Neon connection string, e.g. postgresql://user:password@host/dbname?sslmode=require
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      # The address of the web app on Vercel, e.g. https://retrolive.vercel.app (comma-separate several)
+      - key: CORS_ORIGIN
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-3.5-flash-lite
+      - key: GEMINI_FALLBACK_MODEL
+        value: gemini-3.1-flash-lite

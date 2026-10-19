@@ -1,0 +1,13 @@
+**/node_modules
+**/dist
+.git
+.github
+.env
+.env.*
+!.env.example
+e2e
+docs
+**/*.log
+**/run.log
+**/run2.log
+**/.vite

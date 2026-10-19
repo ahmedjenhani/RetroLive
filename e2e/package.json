@@ -1,0 +1,13 @@
+{
+  "name": "retrolive-e2e",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "test": "playwright test",
+    "test:live-ai": "cross-env LIVE_AI=1 playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.0",
+    "cross-env": "^7.0.3"
+  }
+}
