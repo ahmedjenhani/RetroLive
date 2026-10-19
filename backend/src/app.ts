@@ -4,10 +4,13 @@ import express, { type ErrorRequestHandler, type Express } from 'express';
 import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
 import type { PrismaClient } from '@prisma/client';
+import { LIMITS } from '@retrolive/shared';
 import type { LlmClient } from './ai/llm';
 import { authRoutes } from './auth/routes';
 import type { TokenService } from './auth/tokens';
 import type { Config } from './config';
+import { demoRoutes } from './demo/routes';
+import type { DemoService } from './demo/service';
 import type { RealtimeHub } from './realtime/hub';
 import type { RetroService } from './retro/service';
 import { joinRoutes, sessionRoutes } from './sessions/routes';
@@ -22,10 +25,11 @@ export interface AppDeps {
   retro: RetroService;
   llm: LlmClient;
   hub: RealtimeHub;
+  demo: DemoService;
 }
 
 export function createApp(deps: AppDeps): Express {
-  const { config, prisma, tokens, sessions, retro, llm, hub } = deps;
+  const { config, prisma, tokens, sessions, retro, llm, hub, demo } = deps;
   const app = express();
 
   app.disable('x-powered-by');
@@ -53,9 +57,9 @@ export function createApp(deps: AppDeps): Express {
 
   // Per IP address. Sign-in is strict because it can be guessed at; joining is generous because a whole team
   // sitting behind one office or school network arrives from the same address at the same moment.
-  const limiter = (limit: number, message: string) =>
+  const limiter = (limit: number, message: string, windowMs = 60_000) =>
     rateLimit({
-      windowMs: 60_000,
+      windowMs,
       limit,
       standardHeaders: 'draft-7',
       legacyHeaders: false,
@@ -66,9 +70,15 @@ export function createApp(deps: AppDeps): Express {
     });
   const authLimiter = limiter(20, 'Too many attempts, please wait a minute');
   const joinLimiter = limiter(240, 'Too many requests from your network, please wait a moment');
+  const demoLimiter = limiter(
+    LIMITS.DEMOS_PER_HOUR_PER_IP,
+    'You have started several demos already. Please try again in a while, or create a free account',
+    60 * 60_000,
+  );
 
   app.use('/api/auth', authLimiter, authRoutes(prisma, tokens, config.bcryptRounds));
   app.use('/api/join', joinLimiter, joinRoutes(sessions));
+  app.use('/api/demo', demoLimiter, demoRoutes(demo));
   app.use('/api/sessions', sessionRoutes({ prisma, tokens, sessions, retro, llm, hub }));
 
   app.use((_req, res) => {

@@ -26,10 +26,14 @@ model User {
   email        String   @unique
   name         String
   passwordHash String
+  /// Throwaway account created by the "Try a demo" button. Demos cannot sign in with a password and are deleted after a day.
+  isDemo       Boolean  @default(false)
   createdAt    DateTime @default(now())
 
   sessions     RetroSession[]
   participants Participant[]
+
+  @@index([isDemo, createdAt])
 }
 
 model RetroSession {

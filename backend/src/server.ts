@@ -14,6 +14,9 @@ backend.httpServer.listen(config.port, () => {
   console.log(`[server] RetroLive API listening on port ${config.port} (${config.nodeEnv})`);
 });
 
+// Expired demos are deleted now and then every hour.
+const stopDemoCleanup = backend.demo.startCleanup();
+
 let stopping = false;
 async function shutdown(signal: string): Promise<void> {
   if (stopping) {
@@ -23,6 +26,7 @@ async function shutdown(signal: string): Promise<void> {
   console.log(`[server] ${signal} received, shutting down`);
   // give clients a moment to finish, but never hang a deploy
   setTimeout(() => process.exit(1), 10_000).unref();
+  stopDemoCleanup();
   await backend.close();
   process.exit(0);
 }

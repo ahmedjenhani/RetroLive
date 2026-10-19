@@ -15,6 +15,8 @@ interface AuthContextValue {
   user: UserDto | null;
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
+  /** Starts a session from a server response (used by the "Try a demo" button). */
+  signIn: (response: AuthResponse) => void;
   logout: () => void;
 }
 
@@ -36,6 +38,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       login: async (email, password) => start(await api<AuthResponse>('/auth/login', { method: 'POST', body: { email, password } })),
       register: async (name, email, password) =>
         start(await api<AuthResponse>('/auth/register', { method: 'POST', body: { name, email, password } })),
+      signIn: start,
       logout: () => {
         writeStorage(KEY, null);
         setSession(null);

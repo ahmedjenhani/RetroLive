@@ -36,6 +36,7 @@ export function BoardPage() {
   const [enterError, setEnterError] = useState<string | null>(null);
   const reentered = useRef(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [tipsDismissed, setTipsDismissed] = useState(false);
 
   const { state, clockOffsetMs, status, actions, applySummary } = useSession(creds?.token ?? null);
 
@@ -210,6 +211,25 @@ export function BoardPage() {
         <div aria-live="polite">
           <Alert tone="info">{notice}</Alert>
         </div>
+      )}
+
+      {auth.user?.isDemo && isHost && !tipsDismissed && (
+        <Alert tone="info">
+          <div className="flex items-start gap-3">
+            <div className="flex-1" data-testid="demo-tips">
+              <p className="font-semibold">This is a demo board. Things to try:</p>
+              <ul className="mt-1 list-disc space-y-0.5 pl-5">
+                <li>Vote on the notes that matter most (you have 3 votes).</li>
+                <li>Use the host buttons to move to the discussion, then generate the AI summary.</li>
+                <li>Click the code to copy the invite link and open it in a private window to see the board update live.</li>
+              </ul>
+              <p className="mt-1 text-xs opacity-80">Demos are deleted automatically after 24 hours.</p>
+            </div>
+            <button type="button" onClick={() => setTipsDismissed(true)} className="text-xs font-medium underline">
+              Hide
+            </button>
+          </div>
+        </Alert>
       )}
 
       <PhaseBar phase={session.phase} isHost={isHost} onSetPhase={async (phase) => void (await run(actions.setPhase(phase)))} />

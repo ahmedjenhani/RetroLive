@@ -6,6 +6,7 @@ import { DisabledLlm, type LlmClient } from './ai/llm';
 import { createApp } from './app';
 import { TokenService } from './auth/tokens';
 import type { Config } from './config';
+import { DemoService } from './demo/service';
 import { SocketHub } from './realtime/hub';
 import { attachRealtime } from './realtime/socket';
 import { RetroService } from './retro/service';
@@ -27,6 +28,7 @@ export function createBackend({ config, prisma = new PrismaClient({ datasourceUr
   const retro = new RetroService(prisma, config.rateLimitsEnabled ? noteLimiter : null);
   const sessions = new SessionService(prisma, tokens);
   const hub = new SocketHub();
+  const demo = new DemoService(prisma, tokens, hub, config.bcryptRounds);
 
   const aiClient: LlmClient =
     llm ??
@@ -39,7 +41,7 @@ export function createBackend({ config, prisma = new PrismaClient({ datasourceUr
         })
       : new DisabledLlm());
 
-  const app = createApp({ config, prisma, tokens, sessions, retro, llm: aiClient, hub });
+  const app = createApp({ config, prisma, tokens, sessions, retro, llm: aiClient, hub, demo });
   const httpServer = http.createServer(app);
   const io = attachRealtime({ httpServer, corsOrigins: config.corsOrigins, tokens, retro, hub, floodGuard });
 
@@ -51,5 +53,5 @@ export function createBackend({ config, prisma = new PrismaClient({ datasourceUr
     await prisma.$disconnect();
   }
 
-  return { app, httpServer, io, prisma, tokens, retro, sessions, close };
+  return { app, httpServer, io, prisma, tokens, retro, sessions, demo, close };
 }

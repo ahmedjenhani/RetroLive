@@ -55,6 +55,12 @@ export const LIMITS = {
   TIMER_MAX_SECONDS: 1800,
   JOIN_CODE_LENGTH: 6,
   SUMMARIES_PER_HOUR: 3,
+  /** "Try a demo" button: how many one visitor (IP address) may create per hour... */
+  DEMOS_PER_HOUR_PER_IP: 5,
+  /** ...how many demos may exist at once, so the database cannot be flooded... */
+  DEMO_MAX_ACTIVE: 200,
+  /** ...and how long a demo lives before it is deleted. */
+  DEMO_TTL_HOURS: 24,
 } as const;
 
 // ---------------------------------------------------------------- data shapes
@@ -118,11 +124,18 @@ export interface UserDto {
   id: string;
   name: string;
   email: string;
+  /** True for the throwaway account behind the "Try a demo" button. */
+  isDemo: boolean;
 }
 
 export interface AuthResponse {
   token: string;
   user: UserDto;
+}
+
+/** What the "Try a demo" button returns: a signed-in demo host and the board to open. */
+export interface DemoResponse extends AuthResponse {
+  sessionId: string;
 }
 
 export interface SessionListItem {

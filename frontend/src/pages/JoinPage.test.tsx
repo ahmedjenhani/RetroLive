@@ -2,6 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { AuthProvider } from '../lib/auth';
 import { loadParticipant } from '../lib/participant';
 import { JoinPage } from './JoinPage';
 
@@ -12,13 +13,15 @@ const fetchMock = vi.fn();
 
 function renderAt(path: string) {
   return render(
-    <MemoryRouter initialEntries={[path]}>
-      <Routes>
-        <Route path="/" element={<JoinPage />} />
-        <Route path="/join/:code" element={<JoinPage />} />
-        <Route path="/s/:id" element={<p>The live board</p>} />
-      </Routes>
-    </MemoryRouter>,
+    <AuthProvider>
+      <MemoryRouter initialEntries={[path]}>
+        <Routes>
+          <Route path="/" element={<JoinPage />} />
+          <Route path="/join/:code" element={<JoinPage />} />
+          <Route path="/s/:id" element={<p>The live board</p>} />
+        </Routes>
+      </MemoryRouter>
+    </AuthProvider>,
   );
 }
 
@@ -117,5 +120,57 @@ describe('JoinPage', () => {
     await userEvent.type(screen.getByTestId('nickname'), 'Sam');
     await userEvent.click(screen.getByTestId('join-submit'));
     expect(await screen.findByText(/waking up/)).toBeInTheDocument();
+  });
+});
+
+describe('Try a demo', () => {
+  const demoResponse = {
+    token: 'demo-host-token',
+    user: { id: 'u-demo', name: 'Demo Host', email: 'demo-1@demo.invalid', isDemo: true },
+    sessionId: 'sess-demo',
+  };
+
+  it('starts a demo, signs the visitor in as its host, and opens the board', async () => {
+    fetchMock.mockImplementation(() => json(demoResponse, 201));
+    renderAt('/');
+    await userEvent.click(screen.getByTestId('try-demo'));
+
+    expect(await screen.findByText('The live board')).toBeInTheDocument();
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url.endsWith('/api/demo')).toBe(true);
+    expect(init.method).toBe('POST');
+    const stored = JSON.parse(localStorage.getItem('retrolive.auth') as string);
+    expect(stored.token).toBe('demo-host-token');
+    expect(stored.user.isDemo).toBe(true);
+  });
+
+  it('explains why when the demo is unavailable and stays on the page', async () => {
+    fetchMock.mockImplementation(() =>
+      json({ error: { code: 'RATE_LIMITED', message: 'You have started several demos already. Please try again in a while' } }, 429),
+    );
+    renderAt('/');
+    await userEvent.click(screen.getByTestId('try-demo'));
+    expect(await screen.findByRole('alert')).toHaveTextContent('several demos already');
+    expect(screen.queryByText('The live board')).toBeNull();
+    expect(localStorage.getItem('retrolive.auth')).toBeNull();
+  });
+
+  it('is not offered to a signed-in host, so it cannot replace their own account', () => {
+    localStorage.setItem(
+      'retrolive.auth',
+      JSON.stringify({ token: 't', user: { id: 'u1', name: 'Real Host', email: 'host@example.com', isDemo: false } }),
+    );
+    renderAt('/');
+    expect(screen.queryByTestId('try-demo')).toBeNull();
+    expect(screen.getByTestId('join-submit')).toBeInTheDocument();
+  });
+
+  it('is still offered to someone who is already in a demo', () => {
+    localStorage.setItem(
+      'retrolive.auth',
+      JSON.stringify({ token: 't', user: { id: 'u1', name: 'Demo Host', email: 'demo-1@demo.invalid', isDemo: true } }),
+    );
+    renderAt('/');
+    expect(screen.getByTestId('try-demo')).toBeInTheDocument();
   });
 });

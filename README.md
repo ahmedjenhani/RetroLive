@@ -6,15 +6,19 @@ everyone, and one click turns the notes into themes and action items with AI.
 
 > **Live demo:** _add the Vercel URL here after deploying_ &nbsp;|&nbsp; **API health:** _add the Render URL_`/health`
 >
-> Try it with two browser windows: create a host account, make a session, then open the invite link in a second window
-> and watch the board stay in sync. (Free hosting: the very first request after a quiet period can take up to a minute
+> **No sign-up needed:** click **Try a demo retro** on the home page for a ready-made board. Then click the code to copy the
+> invite link and open it in a second window to watch the board stay in sync. (Free hosting: the very first request after a quiet period can take up to a minute
 > while the server wakes up.)
 
 ![A session in the voting phase](docs/screenshots/board-voting.png)
 
-| Join from any device, no sign-up | AI turns notes into themes and action items |
+| One click opens a ready-made demo board | AI turns notes into themes and action items |
 |---|---|
-| ![On a phone](docs/screenshots/mobile.png) | ![AI summary](docs/screenshots/ai-summary.png) |
+| ![Demo board](docs/screenshots/demo-board.png) | ![AI summary](docs/screenshots/ai-summary.png) |
+
+| Join from any device, no sign-up |
+|---|
+| ![On a phone](docs/screenshots/mobile.png) |
 
 ## How a retro runs
 
@@ -32,6 +36,7 @@ everyone, and one click turns the notes into themes and action items with AI.
 - Exactly 3 votes per person, even if someone clicks very fast on several notes at once
 - Server-driven countdown timer that stays correct on every screen, whatever the device clock says
 - AI summary with Google Gemini: themes with the notes behind them, plus 3 to 5 action items
+- **"Try a demo retro" button**: a private, ready-made sample board for every visitor, deleted automatically after 24 hours
 - Markdown export of the finished retro, light and dark theme, works on a phone
 - Reconnects automatically and restores your identity and your votes after a refresh or a network drop
 
@@ -72,7 +77,7 @@ e2e/        Playwright tests that drive real browsers
 
 ### Data model (5 tables)
 
-`User` (host accounts), `RetroSession` (title, join code, phase, timer end, saved AI summary), `Participant` (the host
+`User` (host accounts, plus a flag for the throwaway demo accounts), `RetroSession` (title, join code, phase, timer end, saved AI summary), `Participant` (the host
 or a guest in one session), `Note`, and `Vote` (unique per participant and note).
 
 ### Design decisions worth a look
@@ -98,6 +103,10 @@ or a guest in one session), `Note`, and `Vote` (unique per participant and note)
   against the real notes. There is a fallback model, a per-session rate limit, and a graceful failure path.
 - **Rate limits fit the traffic.** Sign-in is strict (20 a minute per IP); joining is generous (240), because a whole team
   behind one office network arrives from the same address at the same moment.
+- **The demo button cannot flood the database.** Each click creates a small private copy (about 25 rows) under a flagged account.
+  Demos are limited to 5 an hour per visitor and 200 at once, cannot be signed into with a password, and an hourly job deletes
+  every demo older than 24 hours (sessions, notes and votes follow through cascading deletes). Cleanup only ever touches
+  flagged accounts, and a test proves real accounts are never deleted, however old.
 - **One frontend build for every environment.** The API address is read at runtime from `config.json`, written from the
   `API_URL` variable at build time, so the same code runs on localhost, in Docker and on Vercel.
 
@@ -147,13 +156,13 @@ npm test -w frontend       # reducer, components and screens
 cd e2e && npm install && npx playwright test   # real browsers, several windows at once
 ```
 
-- **Backend (82 tests):** unit tests for the rules, REST integration tests, and real-time tests where several actual Socket.IO clients
+- **Backend (97 tests):** unit tests for the rules, REST integration tests, and real-time tests where several actual Socket.IO clients
   talk to a real server and database: broadcasts, phase rules, the vote limit under concurrency, privacy of votes,
-  reconnection, token rejection, flood and rate limits. The test setup refuses to run against any database whose name does
+  reconnection, token rejection, flood and rate limits, and the demo (isolation, limits, and cleanup that never touches real accounts). The test setup refuses to run against any database whose name does
   not end in `_test`.
-- **Frontend (45 tests):** the state reducer, countdown helpers, and the key components and screens (who sees which buttons in which phase).
-- **End to end (30 tests):** a host and guests in separate browser windows, including voting, timers, reconnecting, closing a
-  session, a phone layout, and a deleted session ending for everyone in it.
+- **Frontend (49 tests):** the state reducer, countdown helpers, and the key components and screens (who sees which buttons in which phase).
+- **End to end (39 tests):** a host and guests in separate browser windows, including voting, timers, reconnecting, closing a
+  session, a phone layout, a deleted session ending for everyone in it, and the one-click demo.
   Start the stack with `.\run-local.ps1 -E2E` (rate limits off, because the tests create dozens of accounts a minute).
   `LIVE_AI=1` adds a test that calls the real Gemini API. It uses your installed Chrome; set `BROWSER=chromium` for Playwright's own.
 
@@ -166,6 +175,7 @@ cd e2e && npm install && npx playwright test   # real browsers, several windows 
 | `POST /api/sessions/:id/enter` | The host takes their place in their own session (returns the socket token) |
 | `POST /api/sessions/:id/summary`, `GET /api/sessions/:id/export` | AI summary, Markdown export |
 | `GET /api/join/:code`, `POST /api/join` | Look up a code, and join as a guest |
+| `POST /api/demo` | Create a private demo board (limited per visitor, deleted after 24 hours) |
 | `GET /health`, `GET /health/ready` | Cheap liveness check, and one that also checks the database |
 
 The live protocol (client to server and back) is documented in code, in `shared/src/index.ts`.

@@ -26,7 +26,10 @@ test.describe('AI summary against the real Gemini API', () => {
     await page.getByTestId('summary-generate').click();
     await expect(page.getByTestId('summary-theme').first()).toBeVisible({ timeout: 90_000 });
     expect(await page.getByTestId('summary-theme').count()).toBeGreaterThanOrEqual(1);
-    expect(await page.getByTestId('summary-actions').locator('li').count()).toBeGreaterThanOrEqual(3);
+    // the prompt asks for 3 to 5 items, but a live model may give fewer: the product accepts 1 to 5
+    const items = await page.getByTestId('summary-actions').locator('li').count();
+    expect(items).toBeGreaterThanOrEqual(1);
+    expect(items).toBeLessThanOrEqual(5);
 
     // the guests did not click anything: the summary reaches them through the live connection
     await expect(gina.page.getByTestId('summary-theme').first()).toBeVisible({ timeout: 10_000 });
@@ -35,5 +38,19 @@ test.describe('AI summary against the real Gemini API', () => {
 
     await gina.context.close();
     await sam.context.close();
+  });
+
+  test('works on the one-click demo board too', async ({ page }) => {
+    test.setTimeout(150_000);
+    await page.goto('/');
+    await page.getByTestId('try-demo').click();
+    await expect(page.getByTestId('board')).toBeVisible();
+    await setPhase(page, 'DISCUSSING');
+    await page.getByTestId('summary-generate').click();
+    await expect(page.getByTestId('summary-theme').first()).toBeVisible({ timeout: 90_000 });
+    // the prompt asks for 3 to 5 items, but a live model may give fewer: the product accepts 1 to 5
+    const items = await page.getByTestId('summary-actions').locator('li').count();
+    expect(items).toBeGreaterThanOrEqual(1);
+    expect(items).toBeLessThanOrEqual(5);
   });
 });

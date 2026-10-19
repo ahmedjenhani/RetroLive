@@ -64,6 +64,7 @@ describe('accounts', () => {
       .expect(201);
     expect(reg.body.user.email).toBe('ada@example.com');
     expect(reg.body.user).not.toHaveProperty('passwordHash');
+    expect(reg.body.user.isDemo).toBe(false);
 
     const login = await backend.api.post('/api/auth/login').send({ email: 'Ada@example.com', password: 'Password123!' }).expect(200);
     const me = await backend.api.get('/api/auth/me').set(auth(login.body.token)).expect(200);

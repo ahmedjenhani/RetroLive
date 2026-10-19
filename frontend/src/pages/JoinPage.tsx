@@ -1,8 +1,9 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
-import { LIMITS, PHASE_LABEL, type JoinPreview, type JoinResponse } from '@retrolive/shared';
+import { LIMITS, PHASE_LABEL, type DemoResponse, type JoinPreview, type JoinResponse } from '@retrolive/shared';
 import { Alert, Button, Card, Field, Input } from '../components/ui';
 import { ApiError, api, errorText } from '../lib/api';
+import { useAuth } from '../lib/auth';
 import { lastNickname, rememberNickname, saveParticipant } from '../lib/participant';
 
 const CODE_PATTERN = new RegExp(`^[A-Z0-9]{${LIMITS.JOIN_CODE_LENGTH}}$`);
@@ -10,6 +11,9 @@ const CODE_PATTERN = new RegExp(`^[A-Z0-9]{${LIMITS.JOIN_CODE_LENGTH}}$`);
 export function JoinPage() {
   const { code: codeParam } = useParams();
   const navigate = useNavigate();
+  const { user, signIn } = useAuth();
+  const [demoBusy, setDemoBusy] = useState(false);
+  const [demoError, setDemoError] = useState<string | null>(null);
   const [code, setCode] = useState((codeParam ?? '').toUpperCase());
   const [nickname, setNickname] = useState(lastNickname);
   const [preview, setPreview] = useState<JoinPreview | null>(null);
@@ -40,6 +44,23 @@ export function JoinPage() {
   }, [code]);
 
   const ended = preview?.phase === 'CLOSED';
+
+  // A signed-in host does not need the demo, and starting one would sign them out of their own account.
+  const offerDemo = !user || user.isDemo;
+
+  async function startDemo() {
+    setDemoBusy(true);
+    setDemoError(null);
+    try {
+      const demo = await api<DemoResponse>('/demo', { method: 'POST' });
+      signIn({ token: demo.token, user: demo.user });
+      navigate(`/s/${demo.sessionId}`);
+    } catch (err) {
+      setDemoError(errorText(err));
+    } finally {
+      setDemoBusy(false);
+    }
+  }
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -139,6 +160,23 @@ export function JoinPage() {
             Join session
           </Button>
         </form>
+
+        {offerDemo && (
+          <div className="mt-6 border-t border-slate-200 pt-5 dark:border-slate-800">
+            <p className="text-sm font-medium">Just looking around?</p>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+              Open a ready-made sample retro with a few teammates. No sign-up, and it is deleted after 24 hours.
+            </p>
+            {demoError && (
+              <div className="mt-3">
+                <Alert tone="error">{demoError}</Alert>
+              </div>
+            )}
+            <Button variant="secondary" className="mt-3 w-full" busy={demoBusy} onClick={startDemo} data-testid="try-demo">
+              Try a demo retro
+            </Button>
+          </div>
+        )}
       </Card>
     </div>
   );

@@ -7,8 +7,8 @@ import { parse, schemas } from '../util/validate';
 import { hostId, requireHost } from './middleware';
 import type { TokenService } from './tokens';
 
-function toUserDto(user: { id: string; name: string; email: string }): UserDto {
-  return { id: user.id, name: user.name, email: user.email };
+function toUserDto(user: { id: string; name: string; email: string; isDemo: boolean }): UserDto {
+  return { id: user.id, name: user.name, email: user.email, isDemo: user.isDemo };
 }
 
 export function authRoutes(prisma: PrismaClient, tokens: TokenService, bcryptRounds: number): Router {
@@ -33,7 +33,8 @@ export function authRoutes(prisma: PrismaClient, tokens: TokenService, bcryptRou
     const input = parse(schemas.login, req.body);
     const user = await prisma.user.findUnique({ where: { email: input.email } });
     // Same answer for "no such user" and "wrong password", so accounts cannot be discovered.
-    const valid = user ? await bcrypt.compare(input.password, user.passwordHash) : false;
+    // Demo accounts have no password anyone knows: they are only ever entered through the demo button.
+    const valid = user && !user.isDemo ? await bcrypt.compare(input.password, user.passwordHash) : false;
     if (!user || !valid) {
       throw errors.unauthenticated('Invalid email or password');
     }
