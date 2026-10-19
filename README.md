@@ -144,7 +144,7 @@ On Windows, `.\run-local.ps1` does all of that and `.\run-local.ps1 -Stop` stops
 | `CORS_ORIGIN` | Comma-separated browser origins allowed to call the API | `http://localhost:5173` |
 | `PORT` | Port of the API | `4000` |
 | `GEMINI_API_KEY` | Enables the AI summary. Without it the button answers "unavailable" and everything else works | empty |
-| `GEMINI_MODEL`, `GEMINI_FALLBACK_MODEL` | Primary and fallback model | `gemini-3.5-flash-lite`, `gemini-3.1-flash-lite` |
+| `GEMINI_MODEL`, `GEMINI_FALLBACK_MODEL` | Primary and fallback model | `gemini-3.1-flash-lite`, `gemini-3.5-flash-lite` |
 | `RATE_LIMITS_ENABLED` | Set to `false` only for the end-to-end tests | `true` (off under `NODE_ENV=test`) |
 | `API_URL` _(web build)_ | API address baked into `config.json`; empty means same origin | unset (keeps `localhost:4000`) |
 

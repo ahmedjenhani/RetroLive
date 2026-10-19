@@ -20,8 +20,8 @@ const schema = z.object({
   /** Comma-separated list of browser origins allowed to call the API. */
   CORS_ORIGIN: z.string().default('http://localhost:5173'),
   GEMINI_API_KEY: z.string().default(''),
-  GEMINI_MODEL: z.string().default('gemini-3.5-flash-lite'),
-  GEMINI_FALLBACK_MODEL: z.string().default('gemini-3.1-flash-lite'),
+  GEMINI_MODEL: z.string().default('gemini-3.1-flash-lite'),
+  GEMINI_FALLBACK_MODEL: z.string().default('gemini-3.5-flash-lite'),
   GEMINI_BASE_URL: z.string().default('https://generativelanguage.googleapis.com'),
   BCRYPT_ROUNDS: z.coerce.number().int().min(4).max(14).default(10),
   RATE_LIMITS_ENABLED: booleanFromString,

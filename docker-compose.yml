@@ -33,8 +33,8 @@ services:
       JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in the .env file (copy .env.example)}
       CORS_ORIGIN: http://localhost:${WEB_PORT:-8080}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
-      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.5-flash-lite}
-      GEMINI_FALLBACK_MODEL: ${GEMINI_FALLBACK_MODEL:-gemini-3.1-flash-lite}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.1-flash-lite}
+      GEMINI_FALLBACK_MODEL: ${GEMINI_FALLBACK_MODEL:-gemini-3.5-flash-lite}
       # leave on; the end-to-end tests turn it off (RATE_LIMITS_ENABLED=false docker compose up)
       RATE_LIMITS_ENABLED: ${RATE_LIMITS_ENABLED:-true}
     # The same memory budget as a free Render instance, so problems show up here first.
